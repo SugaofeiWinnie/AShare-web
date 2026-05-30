@@ -1,0 +1,278 @@
+:root {
+  color: #162033;
+  font-family: Inter, "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+  background: #f4f6f8;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+}
+
+.app-shell {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: 260px minmax(0, 1fr);
+  background: #f4f6f8;
+}
+
+.sidebar {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  padding: 24px 16px;
+  background: #111827;
+  color: #f8fafc;
+}
+
+.brand {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  padding: 0 10px 22px;
+}
+
+.brand-mark {
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  background: #ef4444;
+  font-weight: 800;
+}
+
+.brand strong,
+.brand span {
+  display: block;
+}
+
+.brand span {
+  margin-top: 2px;
+  color: #94a3b8;
+  font-size: 12px;
+}
+
+.side-menu {
+  border-right: 0;
+  background: transparent;
+}
+
+.side-menu :deep(.el-menu-item) {
+  color: #cbd5e1;
+  border-radius: 8px;
+}
+
+.side-note {
+  margin: 28px 10px 0;
+  color: #94a3b8;
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+.main {
+  min-width: 0;
+  padding: 28px;
+}
+
+.topbar {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 18px;
+}
+
+.eyebrow {
+  margin: 0 0 6px;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+h1 {
+  margin: 0;
+  font-size: 28px;
+  line-height: 1.25;
+}
+
+.topbar p {
+  margin: 8px 0 0;
+  color: #64748b;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: #64748b;
+  white-space: nowrap;
+}
+
+.notice {
+  margin-bottom: 16px;
+}
+
+.view {
+  display: grid;
+  gap: 18px;
+}
+
+.market-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.mood-card {
+  grid-column: span 2;
+}
+
+.mood-head {
+  display: grid;
+  gap: 14px;
+}
+
+.mood-head strong {
+  font-size: 34px;
+}
+
+.index-card p {
+  margin: 0 0 10px;
+  color: #64748b;
+}
+
+.index-card strong {
+  display: block;
+  font-size: 24px;
+  margin-bottom: 8px;
+}
+
+.analysis-grid,
+.content-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.analysis-text {
+  margin: 0;
+  color: #334155;
+  line-height: 1.8;
+}
+
+.panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.metric-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.metric-grid span,
+.metric-grid strong {
+  display: block;
+}
+
+.metric-grid span {
+  color: #64748b;
+}
+
+.metric-grid strong {
+  margin-top: 8px;
+  font-size: 28px;
+}
+
+.ladder-card {
+  margin-top: 18px;
+}
+
+.ladder {
+  display: grid;
+  gap: 14px;
+}
+
+.tier {
+  display: grid;
+  grid-template-columns: 88px minmax(0, 1fr);
+  gap: 14px;
+  align-items: start;
+}
+
+.tier-label {
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: #fee2e2;
+  color: #991b1b;
+  font-weight: 700;
+  text-align: center;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.up {
+  color: #dc2626;
+  font-weight: 700;
+}
+
+.down {
+  color: #059669;
+  font-weight: 700;
+}
+
+.flat {
+  color: #64748b;
+}
+
+@media (max-width: 1100px) {
+  .app-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .sidebar {
+    position: static;
+    height: auto;
+  }
+
+  .market-grid,
+  .analysis-grid,
+  .content-grid,
+  .metric-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .mood-card {
+    grid-column: auto;
+  }
+}
+
+@media (max-width: 700px) {
+  .main {
+    padding: 18px;
+  }
+
+  .topbar,
+  .actions,
+  .panel-head {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .tier {
+    grid-template-columns: 1fr;
+  }
+}
