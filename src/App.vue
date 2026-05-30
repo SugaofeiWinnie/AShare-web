@@ -58,7 +58,7 @@ const pageMeta = computed(() => {
     boards: ['热门板块排行', '按涨跌与资金流向查看今天最热的行业和概念。'],
     funds: ['资金流向', '观察北向资金、主力资金和龙虎榜里的真实偏好。'],
     ladder: ['连板天梯', '比较昨日涨停池和今日涨停池，跟踪晋级和断板。'],
-    ai: ['AI盘后复盘', '把你的观点和操作丢给 GPT，看看今天是否走在节奏上。']
+    ai: ['AI盘后复盘', '输入今天的观点和操作，让智能助手帮你复盘节奏和风险。']
   }
   return map[activeView.value]
 })
@@ -92,15 +92,15 @@ const dragonTigerRows = computed(() => funds.value?.dragonTiger ?? [])
 
 const moodLabel = computed(() => {
   const label = overview.value?.mood.label ?? ''
-  if (label === 'Hot') return '偏热'
-  if (label === 'Cold') return '偏冷'
+  if (label === 'Hot' || label === '偏热') return '偏热'
+  if (label === 'Cold' || label === '偏冷') return '偏冷'
   return '震荡'
 })
 
 const moodColor = computed(() => {
   const label = overview.value?.mood.label ?? ''
-  if (label === 'Hot') return '#dc2626'
-  if (label === 'Cold') return '#059669'
+  if (label === 'Hot' || label === '偏热') return '#dc2626'
+  if (label === 'Cold' || label === '偏冷') return '#059669'
   return '#d97706'
 })
 
@@ -241,7 +241,42 @@ function tierRows(days: number): LadderRow[] {
 }
 
 function briefMove(item: GlobalMarketItem) {
-  return `${item.name} ${item.pct >= 0 ? '+' : ''}${formatNumber(item.pct)}%`
+  return `${marketName(item)} ${item.pct >= 0 ? '+' : ''}${formatNumber(item.pct)}%`
+}
+
+function marketGroup(group: string) {
+  const map: Record<string, string> = {
+    US: '美股',
+    ADR: '中概股',
+    Commodity: '商品',
+    FX: '汇率',
+    Earnings: '财报'
+  }
+  return map[group] ?? group
+}
+
+function marketName(item: GlobalMarketItem) {
+  const map: Record<string, string> = {
+    SPY: '标普500ETF',
+    QQQ: '纳指100ETF',
+    DIA: '道指ETF',
+    IWM: '罗素2000ETF',
+    BABA: '阿里巴巴',
+    PDD: '拼多多',
+    JD: '京东',
+    BIDU: '百度',
+    NIO: '蔚来',
+    XPEV: '小鹏汽车',
+    'XAU/USD': '黄金',
+    'CL.F': 'WTI原油',
+    'SI.F': '白银',
+    'HG.F': '铜',
+    USDCNY: '美元/人民币',
+    USDCNH: '美元/离岸人民币',
+    EURUSD: '欧元/美元',
+    USDJPY: '美元/日元'
+  }
+  return map[item.code] ?? item.name
 }
 
 watch(selectedDate, () => {
@@ -273,7 +308,7 @@ onMounted(async () => {
           <div class="brand-mark">A</div>
           <div>
             <strong>A股观察台</strong>
-            <span>Market Board</span>
+            <span>市场观察面板</span>
           </div>
         </div>
 
@@ -310,7 +345,7 @@ onMounted(async () => {
       <main class="main">
         <header class="topbar">
           <section>
-            <p class="eyebrow">A-SHARE MARKET DASHBOARD</p>
+            <p class="eyebrow">A股市场观察</p>
             <h1>{{ pageMeta[0] }}</h1>
             <p>{{ pageMeta[1] }}</p>
           </section>
@@ -389,8 +424,8 @@ onMounted(async () => {
                 </template>
                 <div class="global-grid">
                   <section v-for="item in overview.globalMarkets" :key="`${item.group}-${item.code}`" class="global-item">
-                    <small>{{ item.group }}</small>
-                    <strong>{{ item.name }}</strong>
+                    <small>{{ marketGroup(item.group) }}</small>
+                    <strong>{{ marketName(item) }}</strong>
                     <span :class="pctClass(item.pct)">{{ formatNumber(item.price) }} / {{ formatPct(item.pct) }}</span>
                   </section>
                 </div>
@@ -427,7 +462,7 @@ onMounted(async () => {
               </el-card>
               <el-card shadow="never">
                 <template #header>
-                  <span>中概股 / ADR</span>
+                  <span>中概股</span>
                 </template>
                 <ul class="compact-list">
                   <li v-for="item in preopenRows?.chineseAdr ?? []" :key="item.code">{{ briefMove(item) }}</li>
@@ -675,7 +710,7 @@ onMounted(async () => {
                     placeholder="市场背景，默认会带入今天的总览分析。"
                   />
                   <el-button type="danger" :loading="aiLoading" @click="submitReview">
-                    调用 GPT 复盘
+                    开始 AI 复盘
                   </el-button>
                 </div>
               </el-card>
@@ -686,12 +721,12 @@ onMounted(async () => {
                 </template>
                 <div v-if="aiResult" class="ai-result">
                   <el-tag :type="aiResult.fallback ? 'info' : 'success'">
-                    {{ aiResult.fallback ? '本地兜底回答' : aiResult.model }}
+                    {{ aiResult.fallback ? '本地简版复盘' : '智能复盘已生成' }}
                   </el-tag>
                   <p class="analysis-text">{{ aiResult.reply }}</p>
                   <small>生成于 {{ aiResult.generatedAt }}</small>
                 </div>
-                <el-empty v-else description="先输入观点和操作，再点击按钮调用 GPT" />
+                <el-empty v-else description="先输入观点和操作，再点击按钮生成复盘" />
               </el-card>
             </div>
           </section>

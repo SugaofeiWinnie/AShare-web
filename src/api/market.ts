@@ -18,7 +18,7 @@ export async function fetchOverview(date?: string): Promise<MarketOverview> {
   })
 
   if (!response.ok) {
-    throw new Error(`overview request failed: ${response.status}`)
+    throw new Error(`市场总览接口请求失败：${response.status}`)
   }
 
   return response.json() as Promise<MarketOverview>
@@ -31,7 +31,7 @@ export async function fetchPreopen(): Promise<PreopenBrief> {
   })
 
   if (!response.ok) {
-    throw new Error(`preopen request failed: ${response.status}`)
+    throw new Error(`盘前看点接口请求失败：${response.status}`)
   }
 
   return response.json() as Promise<PreopenBrief>
@@ -44,7 +44,7 @@ export async function fetchFunds(): Promise<FundFlowOverview> {
   })
 
   if (!response.ok) {
-    throw new Error(`funds request failed: ${response.status}`)
+    throw new Error(`资金流向接口请求失败：${response.status}`)
   }
 
   return response.json() as Promise<FundFlowOverview>
@@ -61,7 +61,7 @@ export async function submitAiReview(payload: AiReviewRequest): Promise<AiReview
   })
 
   if (!response.ok) {
-    throw new Error(`ai review request failed: ${response.status}`)
+    throw new Error(`AI复盘接口请求失败：${response.status}`)
   }
 
   return response.json() as Promise<AiReviewResponse>
