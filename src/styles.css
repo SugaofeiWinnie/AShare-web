@@ -62,21 +62,24 @@ body {
 .side-menu {
   border-right: 0;
   background: transparent;
+  --el-menu-active-color: #dc2626;
+  --el-menu-hover-bg-color: #f8fafc;
+  --el-menu-text-color: #374151;
 }
 
-.side-menu :deep(.el-menu-item) {
+.side-menu .el-menu-item {
   color: #374151;
   border-radius: 8px;
 }
 
-.side-menu :deep(.el-menu-item:hover) {
+.side-menu .el-menu-item:hover {
   background: #f8fafc;
   color: #111827;
 }
 
-.side-menu :deep(.el-menu-item.is-active) {
+.side-menu .el-menu-item.is-active {
   background: #fef2f2;
-  color: #dc2626;
+  color: #dc2626 !important;
   font-weight: 700;
 }
 
