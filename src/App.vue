@@ -1,27 +1,66 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
-import { Calendar, TrendCharts, Histogram, Tickets } from '@element-plus/icons-vue'
-import { fetchOverview } from './api/market'
-import type { LadderRow, MarketOverview, QuoteItem } from './types/market'
+import { computed, onMounted, reactive, ref, watch } from 'vue'
+import {
+  Calendar,
+  Coin,
+  DataAnalysis,
+  TrendCharts,
+  Tickets,
+  MagicStick
+} from '@element-plus/icons-vue'
+import {
+  fetchFunds,
+  fetchOverview,
+  fetchPreopen,
+  submitAiReview
+} from './api/market'
+import type {
+  AiReviewResponse,
+  FundFlowOverview,
+  GlobalMarketItem,
+  LadderRow,
+  MarketOverview,
+  PreopenBrief,
+  QuoteItem
+} from './types/market'
 
-type ViewName = 'home' | 'boards' | 'ladder'
+type ViewName = 'overview' | 'preopen' | 'boards' | 'funds' | 'ladder' | 'ai'
 type ConceptOrder = 'top' | 'bottom'
 
-const activeView = ref<ViewName>('home')
+const activeView = ref<ViewName>('overview')
+const selectedDate = ref(formatLocalDate(new Date()))
+
 const overview = ref<MarketOverview | null>(null)
-const loading = ref(false)
+const preopen = ref<PreopenBrief | null>(null)
+const funds = ref<FundFlowOverview | null>(null)
+const aiResult = ref<AiReviewResponse | null>(null)
+
+const overviewLoading = ref(false)
+const preopenLoading = ref(false)
+const fundsLoading = ref(false)
+const aiLoading = ref(false)
 const error = ref('')
 const industryLimit = ref(12)
 const conceptOrder = ref<ConceptOrder>('top')
-const selectedDate = ref(formatLocalDate(new Date()))
+
+const reviewForm = reactive({
+  viewpoint: '',
+  operation: '',
+  position: '',
+  concern: '',
+  marketContext: ''
+})
 
 const pageMeta = computed(() => {
-  const copy = {
-    home: ['A股大盘与板块观察台', '聚焦主要指数、市场温度和结构化盘面解读。'],
-    boards: ['板块详情', '查看行业板块与概念板块涨跌排序，识别当天主线。'],
-    ladder: ['连板天梯', '对比昨日涨停池与今日涨停池，观察个股晋级和断板。']
-  } as const
-  return copy[activeView.value]
+  const map: Record<ViewName, [string, string]> = {
+    overview: ['今日市场总览', '看指数、看板块、看国际市场，把今天的盘面一次看清。'],
+    preopen: ['盘前看点', '自动生成隔夜美股、中概股、商品、汇率和财报日历等内容。'],
+    boards: ['热门板块排行', '按涨跌与资金流向查看今天最热的行业和概念。'],
+    funds: ['资金流向', '观察北向资金、主力资金和龙虎榜里的真实偏好。'],
+    ladder: ['连板天梯', '比较昨日涨停池和今日涨停池，跟踪晋级和断板。'],
+    ai: ['AI盘后复盘', '把你的观点和操作丢给 GPT，看看今天是否走在节奏上。']
+  }
+  return map[activeView.value]
 })
 
 const topIndustries = computed(() => {
@@ -31,26 +70,103 @@ const topIndustries = computed(() => {
 })
 
 const displayedConcepts = computed(() => {
-  const sort = conceptOrder.value === 'top'
+  const compare = conceptOrder.value === 'top'
     ? (a: QuoteItem, b: QuoteItem) => b.pct - a.pct
     : (a: QuoteItem, b: QuoteItem) => a.pct - b.pct
-  return [...(overview.value?.concepts ?? [])].sort(sort).slice(0, 12)
+  return [...(overview.value?.concepts ?? [])].sort(compare).slice(0, 12)
 })
 
 const promotedRows = computed(() => {
   return (overview.value?.ladder.rows ?? []).filter((row) => row.promoted)
 })
 
-async function loadMarket() {
-  loading.value = true
+const ladderTiers = computed(() => {
+  const days = new Set(promotedRows.value.map((row) => row.todayDays))
+  return [...days].sort((a, b) => b - a)
+})
+
+const preopenRows = computed(() => preopen.value)
+const northboundRows = computed(() => funds.value?.northbound ?? [])
+const mainFundRows = computed(() => funds.value?.mainFunds ?? [])
+const dragonTigerRows = computed(() => funds.value?.dragonTiger ?? [])
+
+const moodLabel = computed(() => {
+  const label = overview.value?.mood.label ?? ''
+  if (label === 'Hot') return '偏热'
+  if (label === 'Cold') return '偏冷'
+  return '震荡'
+})
+
+const moodColor = computed(() => {
+  const label = overview.value?.mood.label ?? ''
+  if (label === 'Hot') return '#dc2626'
+  if (label === 'Cold') return '#059669'
+  return '#d97706'
+})
+
+const dateHint = computed(() => {
+  if (!overview.value) return ''
+  if (overview.value.tradeDate === selectedDate.value) return ''
+  return `已回退至最近可用交易日 ${overview.value.tradeDate}`
+})
+
+async function loadOverview() {
+  overviewLoading.value = true
   error.value = ''
   try {
     overview.value = await fetchOverview(selectedDate.value)
   } catch (err) {
     error.value = err instanceof Error ? err.message : '行情数据加载失败'
   } finally {
-    loading.value = false
+    overviewLoading.value = false
   }
+}
+
+async function loadPreopen(force = false) {
+  if (preopenLoading.value || (!force && preopen.value)) return
+  preopenLoading.value = true
+  try {
+    preopen.value = await fetchPreopen()
+  } catch (err) {
+    error.value = err instanceof Error ? err.message : '盘前看点加载失败'
+  } finally {
+    preopenLoading.value = false
+  }
+}
+
+async function loadFunds(force = false) {
+  if (fundsLoading.value || (!force && funds.value)) return
+  fundsLoading.value = true
+  try {
+    funds.value = await fetchFunds()
+  } catch (err) {
+    error.value = err instanceof Error ? err.message : '资金流向加载失败'
+  } finally {
+    fundsLoading.value = false
+  }
+}
+
+async function submitReview() {
+  aiLoading.value = true
+  error.value = ''
+  try {
+    aiResult.value = await submitAiReview({
+      tradeDate: selectedDate.value,
+      viewpoint: reviewForm.viewpoint.trim(),
+      operation: reviewForm.operation.trim(),
+      position: reviewForm.position.trim(),
+      concern: reviewForm.concern.trim(),
+      marketContext: reviewForm.marketContext.trim() || overview.value?.analysis || ''
+    })
+  } catch (err) {
+    error.value = err instanceof Error ? err.message : 'AI复盘请求失败'
+  } finally {
+    aiLoading.value = false
+  }
+}
+
+function selectView(key: string) {
+  activeView.value = key as ViewName
 }
 
 function formatLocalDate(date: Date) {
@@ -64,22 +180,6 @@ function disableFutureDate(date: Date) {
   const today = new Date()
   today.setHours(23, 59, 59, 999)
   return date.getTime() > today.getTime()
-}
-
-function selectView(key: string) {
-  activeView.value = key as ViewName
-}
-
-function moodColor(label: string) {
-  if (label === '偏热') return '#dc2626'
-  if (label === '偏冷') return '#059669'
-  return '#d97706'
-}
-
-function pctClass(value: number) {
-  if (value > 0) return 'up'
-  if (value < 0) return 'down'
-  return 'flat'
 }
 
 function formatNumber(value: number, digits = 2) {
@@ -112,17 +212,21 @@ function formatLimitTime(value: string) {
   return `${padded.slice(0, 2)}:${padded.slice(2, 4)}:${padded.slice(4, 6)}`
 }
 
+function pctClass(value: number) {
+  if (value > 0) return 'up'
+  if (value < 0) return 'down'
+  return 'flat'
+}
+
 function sparklinePoints(item: QuoteItem) {
   const prices = item.trends.map((point) => point.price).filter((price) => Number.isFinite(price) && price > 0)
   if (prices.length < 2) return ''
-
   const min = Math.min(...prices)
   const max = Math.max(...prices)
   const range = max - min || 1
   const width = 180
   const height = 52
   const step = width / Math.max(prices.length - 1, 1)
-
   return prices
     .map((price, index) => {
       const x = index * step
@@ -136,12 +240,29 @@ function tierRows(days: number): LadderRow[] {
   return promotedRows.value.filter((row) => row.todayDays === days)
 }
 
-const ladderTiers = computed(() => {
-  const days = new Set(promotedRows.value.map((row) => row.todayDays))
-  return [...days].sort((a, b) => b - a)
+function briefMove(item: GlobalMarketItem) {
+  return `${item.name} ${item.pct >= 0 ? '+' : ''}${formatNumber(item.pct)}%`
+}
+
+watch(selectedDate, () => {
+  loadOverview()
 })
 
-onMounted(loadMarket)
+watch(activeView, (view) => {
+  if (view === 'preopen') loadPreopen()
+  if (view === 'funds') loadFunds()
+})
+
+watch(overview, (current) => {
+  if (current && !reviewForm.marketContext) {
+    reviewForm.marketContext = current.analysis
+  }
+})
+
+onMounted(async () => {
+  await loadOverview()
+  await Promise.all([loadPreopen(), loadFunds()])
+})
 </script>
 
 <template>
@@ -157,21 +278,33 @@ onMounted(loadMarket)
         </div>
 
         <el-menu :default-active="activeView" class="side-menu" @select="selectView">
-          <el-menu-item index="home">
+          <el-menu-item index="overview">
             <el-icon><TrendCharts /></el-icon>
-            <span>首页</span>
+            <span>今日市场总览</span>
+          </el-menu-item>
+          <el-menu-item index="preopen">
+            <el-icon><Calendar /></el-icon>
+            <span>盘前看点</span>
           </el-menu-item>
           <el-menu-item index="boards">
-            <el-icon><Histogram /></el-icon>
-            <span>板块详情</span>
+            <el-icon><DataAnalysis /></el-icon>
+            <span>热门板块排行</span>
+          </el-menu-item>
+          <el-menu-item index="funds">
+            <el-icon><Coin /></el-icon>
+            <span>资金流向</span>
           </el-menu-item>
           <el-menu-item index="ladder">
             <el-icon><Tickets /></el-icon>
             <span>连板天梯</span>
           </el-menu-item>
+          <el-menu-item index="ai">
+            <el-icon><MagicStick /></el-icon>
+            <span>AI盘后复盘</span>
+          </el-menu-item>
         </el-menu>
 
-        <p class="side-note">数据来自东方财富公开行情接口，仅用于观察和学习。</p>
+        <p class="side-note">数据来自东方财富公开行情接口与外部公开市场页，仅用于观察和学习。</p>
       </aside>
 
       <main class="main">
@@ -190,16 +323,12 @@ onMounted(loadMarket)
               :prefix-icon="Calendar"
               :clearable="false"
               :disabled-date="disableFutureDate"
-              :disabled="loading"
-              @change="loadMarket"
+              :disabled="overviewLoading"
             />
-            <span>
-              {{
-                overview?.updatedAt
-                  ? `交易日 ${overview.tradeDate} · 更新于 ${overview.updatedAt}`
-                  : '等待加载'
-              }}
+            <span v-if="overview">
+              查询 {{ selectedDate }} · 交易日 {{ overview.tradeDate }} · 更新于 {{ overview.updatedAt }}
             </span>
+            <small v-if="dateHint">{{ dateHint }}</small>
           </section>
         </header>
 
@@ -213,19 +342,19 @@ onMounted(loadMarket)
         />
 
         <template v-if="overview">
-          <section v-show="activeView === 'home'" class="view">
+          <section v-show="activeView === 'overview'" class="view">
             <div class="market-grid">
               <el-card class="mood-card" shadow="never">
                 <template #header>
                   <span>市场温度</span>
                 </template>
                 <div class="mood-head">
-                  <strong>{{ overview.mood.label }}</strong>
+                  <strong>{{ moodLabel }}</strong>
                   <el-progress
                     :percentage="overview.mood.heat"
                     :stroke-width="12"
                     :show-text="false"
-                    :color="moodColor(overview.mood.label)"
+                    :color="moodColor"
                   />
                 </div>
                 <p>{{ overview.mood.detail }}</p>
@@ -253,13 +382,96 @@ onMounted(loadMarket)
                 </template>
                 <p class="analysis-text">{{ overview.analysis }}</p>
               </el-card>
+
               <el-card shadow="never">
                 <template #header>
-                  <span>趋势框架</span>
+                  <span>国际市场</span>
                 </template>
-                <p class="analysis-text">
-                  短线看量能和扩散，中线看盈利与政策，长期看产业升级与资本回报。若上涨由多个行业同步扩散且成交放大，持续性通常更强；若只集中在少数题材，波动会更高。
-                </p>
+                <div class="global-grid">
+                  <section v-for="item in overview.globalMarkets" :key="`${item.group}-${item.code}`" class="global-item">
+                    <small>{{ item.group }}</small>
+                    <strong>{{ item.name }}</strong>
+                    <span :class="pctClass(item.pct)">{{ formatNumber(item.price) }} / {{ formatPct(item.pct) }}</span>
+                  </section>
+                </div>
+              </el-card>
+            </div>
+          </section>
+
+          <section v-show="activeView === 'preopen'" class="view">
+            <div class="analysis-grid">
+              <el-card shadow="never">
+                <template #header>
+                  <span>盘前摘要</span>
+                </template>
+                <p class="analysis-text">{{ preopenRows?.summary ?? '暂无盘前摘要' }}</p>
+              </el-card>
+              <el-card shadow="never">
+                <template #header>
+                  <span>今日重要事件</span>
+                </template>
+                <div class="list-block">
+                  <p v-for="item in preopenRows?.importantEvents ?? []" :key="item">{{ item }}</p>
+                </div>
+              </el-card>
+            </div>
+
+            <div class="content-grid">
+              <el-card shadow="never">
+                <template #header>
+                  <span>隔夜美股</span>
+                </template>
+                <ul class="compact-list">
+                  <li v-for="item in preopenRows?.overnightUs ?? []" :key="item.code">{{ briefMove(item) }}</li>
+                </ul>
+              </el-card>
+              <el-card shadow="never">
+                <template #header>
+                  <span>中概股 / ADR</span>
+                </template>
+                <ul class="compact-list">
+                  <li v-for="item in preopenRows?.chineseAdr ?? []" :key="item.code">{{ briefMove(item) }}</li>
+                </ul>
+              </el-card>
+            </div>
+
+            <div class="content-grid">
+              <el-card shadow="never">
+                <template #header>
+                  <span>商品市场</span>
+                </template>
+                <ul class="compact-list">
+                  <li v-for="item in preopenRows?.commodities ?? []" :key="item.code">{{ briefMove(item) }}</li>
+                </ul>
+              </el-card>
+              <el-card shadow="never">
+                <template #header>
+                  <span>汇率</span>
+                </template>
+                <ul class="compact-list">
+                  <li v-for="item in preopenRows?.fx ?? []" :key="item.code">{{ briefMove(item) }}</li>
+                </ul>
+              </el-card>
+            </div>
+
+            <div class="analysis-grid">
+              <el-card shadow="never">
+                <template #header>
+                  <span>财报日历</span>
+                </template>
+                <el-table :data="preopenRows?.earningsCalendar ?? []" size="large">
+                  <el-table-column prop="name" label="公司" min-width="120" />
+                  <el-table-column prop="earningsDate" label="财报日期" width="140" />
+                  <el-table-column prop="note" label="提示" min-width="220" />
+                </el-table>
+              </el-card>
+              <el-card shadow="never">
+                <template #header>
+                  <span>今日热点预测</span>
+                </template>
+                <ol class="number-list">
+                  <li v-for="item in preopenRows?.hotPredictions ?? []" :key="item">{{ item }}</li>
+                </ol>
               </el-card>
             </div>
           </section>
@@ -317,6 +529,71 @@ onMounted(loadMarket)
             </div>
           </section>
 
+          <section v-show="activeView === 'funds'" class="view">
+            <div class="analysis-grid">
+              <el-card shadow="never">
+                <template #header>
+                  <span>北向资金</span>
+                </template>
+                <el-table :data="northboundRows" size="large">
+                  <el-table-column prop="name" label="方向" min-width="140" />
+                  <el-table-column label="当日净流入" width="140">
+                    <template #default="{ row }">{{ formatAmount(row.dayNetAmtIn) }}</template>
+                  </el-table-column>
+                  <el-table-column label="月度净流入" width="140">
+                    <template #default="{ row }">{{ formatAmount(row.monthNetAmtIn) }}</template>
+                  </el-table-column>
+                  <el-table-column label="年度净流入" width="140">
+                    <template #default="{ row }">{{ formatAmount(row.yearNetAmtIn) }}</template>
+                  </el-table-column>
+                </el-table>
+              </el-card>
+              <el-card shadow="never">
+                <template #header>
+                  <span>主力资金</span>
+                </template>
+                <el-table :data="mainFundRows" size="large">
+                  <el-table-column prop="name" label="名称" min-width="140" />
+                  <el-table-column prop="type" label="类型" width="100" />
+                  <el-table-column label="净流入" width="140">
+                    <template #default="{ row }">{{ formatAmount(row.inflow) }}</template>
+                  </el-table-column>
+                  <el-table-column label="涨跌幅" width="120">
+                    <template #default="{ row }"><span :class="pctClass(row.changePct)">{{ formatPct(row.changePct) }}</span></template>
+                  </el-table-column>
+                </el-table>
+              </el-card>
+            </div>
+
+            <el-card shadow="never">
+              <template #header>
+                <span>龙虎榜观察</span>
+              </template>
+              <el-table :data="dragonTigerRows" size="large">
+                <el-table-column prop="name" label="股票" min-width="150" />
+                <el-table-column prop="reason" label="原因" min-width="220" />
+                <el-table-column label="收盘价" width="110">
+                  <template #default="{ row }">{{ formatNumber(row.closePrice) }}</template>
+                </el-table-column>
+                <el-table-column label="涨跌幅" width="110">
+                  <template #default="{ row }"><span :class="pctClass(row.changePct)">{{ formatPct(row.changePct) }}</span></template>
+                </el-table-column>
+                <el-table-column label="净买额" width="140">
+                  <template #default="{ row }">{{ formatAmount(row.netBuy) }}</template>
+                </el-table-column>
+                <el-table-column label="买入额" width="140">
+                  <template #default="{ row }">{{ formatAmount(row.buyAmt) }}</template>
+                </el-table-column>
+                <el-table-column label="卖出额" width="140">
+                  <template #default="{ row }">{{ formatAmount(row.sellAmt) }}</template>
+                </el-table-column>
+                <el-table-column label="换手率" width="110">
+                  <template #default="{ row }">{{ formatNumber(row.turnoverRate) }}%</template>
+                </el-table-column>
+              </el-table>
+            </el-card>
+          </section>
+
           <section v-show="activeView === 'ladder'" class="view">
             <div class="metric-grid">
               <el-card shadow="never"><span>昨日涨停</span><strong>{{ overview.ladder.yesterdayLimitCount }}</strong></el-card>
@@ -350,9 +627,7 @@ onMounted(loadMarket)
                 <span>昨日涨停股今日表现</span>
               </template>
               <el-table :data="overview.ladder.rows" size="large">
-                <el-table-column prop="name" label="股票" min-width="150">
-                  <template #default="{ row }">{{ row.name }} {{ row.code }}</template>
-                </el-table-column>
+                <el-table-column prop="name" label="股票" min-width="150" />
                 <el-table-column label="状态" width="100">
                   <template #default="{ row }">
                     <el-tag :type="row.promoted ? 'danger' : 'info'">{{ row.promoted ? '晋级' : '断板' }}</el-tag>
@@ -371,10 +646,59 @@ onMounted(loadMarket)
               </el-table>
             </el-card>
           </section>
+
+          <section v-show="activeView === 'ai'" class="view">
+            <div class="content-grid">
+              <el-card shadow="never">
+                <template #header>
+                  <span>今天的观点和操作</span>
+                </template>
+                <div class="form-grid">
+                  <el-input
+                    v-model="reviewForm.viewpoint"
+                    type="textarea"
+                    :rows="3"
+                    placeholder="例如：今天判断市场会继续偏强，重点看科技和高股息的轮动。"
+                  />
+                  <el-input
+                    v-model="reviewForm.operation"
+                    type="textarea"
+                    :rows="3"
+                    placeholder="例如：早盘加仓了AI应用，中午减了一部分，尾盘又做了回补。"
+                  />
+                  <el-input v-model="reviewForm.position" placeholder="当前持仓，选填" />
+                  <el-input v-model="reviewForm.concern" placeholder="你最担心的问题，选填" />
+                  <el-input
+                    v-model="reviewForm.marketContext"
+                    type="textarea"
+                    :rows="4"
+                    placeholder="市场背景，默认会带入今天的总览分析。"
+                  />
+                  <el-button type="danger" :loading="aiLoading" @click="submitReview">
+                    调用 GPT 复盘
+                  </el-button>
+                </div>
+              </el-card>
+
+              <el-card shadow="never">
+                <template #header>
+                  <span>AI 解答</span>
+                </template>
+                <div v-if="aiResult" class="ai-result">
+                  <el-tag :type="aiResult.fallback ? 'info' : 'success'">
+                    {{ aiResult.fallback ? '本地兜底回答' : aiResult.model }}
+                  </el-tag>
+                  <p class="analysis-text">{{ aiResult.reply }}</p>
+                  <small>生成于 {{ aiResult.generatedAt }}</small>
+                </div>
+                <el-empty v-else description="先输入观点和操作，再点击按钮调用 GPT" />
+              </el-card>
+            </div>
+          </section>
         </template>
 
-        <el-empty v-else-if="!loading && !error" description="请选择日期加载行情" />
-        <el-skeleton v-if="loading && !overview" :rows="8" animated />
+        <el-empty v-else-if="!overviewLoading && !error" description="正在加载市场数据" />
+        <el-skeleton v-if="overviewLoading && !overview" :rows="8" animated />
       </main>
     </div>
   </el-config-provider>

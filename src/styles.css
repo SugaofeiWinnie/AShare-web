@@ -12,6 +12,11 @@
 
 body {
   margin: 0;
+  background: #f4f6f8;
+}
+
+#app {
+  min-height: 100vh;
 }
 
 .app-shell {
@@ -45,6 +50,7 @@ body {
   place-items: center;
   border-radius: 8px;
   background: #ef4444;
+  color: #fff;
   font-weight: 800;
 }
 
@@ -297,6 +303,60 @@ h1 {
   color: #64748b;
 }
 
+.global-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.global-item {
+  padding: 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #fafafa;
+}
+
+.global-item small {
+  display: block;
+  color: #64748b;
+  margin-bottom: 6px;
+}
+
+.global-item strong {
+  display: block;
+  margin-bottom: 6px;
+}
+
+.list-block {
+  display: grid;
+  gap: 10px;
+}
+
+.list-block p {
+  margin: 0;
+  color: #334155;
+  line-height: 1.7;
+}
+
+.compact-list,
+.number-list {
+  margin: 0;
+  padding-left: 18px;
+  display: grid;
+  gap: 8px;
+  color: #334155;
+}
+
+.form-grid {
+  display: grid;
+  gap: 12px;
+}
+
+.ai-result {
+  display: grid;
+  gap: 12px;
+}
+
 @media (max-width: 1100px) {
   .app-shell {
     grid-template-columns: 1fr;
@@ -310,7 +370,8 @@ h1 {
   .market-grid,
   .analysis-grid,
   .content-grid,
-  .metric-grid {
+  .metric-grid,
+  .global-grid {
     grid-template-columns: 1fr;
   }
 
