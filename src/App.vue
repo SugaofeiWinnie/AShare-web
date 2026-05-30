@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
-import { Refresh, TrendCharts, DataLine, Histogram, Tickets } from '@element-plus/icons-vue'
+import { Calendar, TrendCharts, Histogram, Tickets } from '@element-plus/icons-vue'
 import { fetchOverview } from './api/market'
 import type { LadderRow, MarketOverview, QuoteItem } from './types/market'
 
@@ -13,6 +13,7 @@ const loading = ref(false)
 const error = ref('')
 const industryLimit = ref(12)
 const conceptOrder = ref<ConceptOrder>('top')
+const selectedDate = ref(formatLocalDate(new Date()))
 
 const pageMeta = computed(() => {
   const copy = {
@@ -44,12 +45,25 @@ async function loadMarket() {
   loading.value = true
   error.value = ''
   try {
-    overview.value = await fetchOverview()
+    overview.value = await fetchOverview(selectedDate.value)
   } catch (err) {
     error.value = err instanceof Error ? err.message : '行情数据加载失败'
   } finally {
     loading.value = false
   }
+}
+
+function formatLocalDate(date: Date) {
+  const year = date.getFullYear()
+  const month = `${date.getMonth() + 1}`.padStart(2, '0')
+  const day = `${date.getDate()}`.padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+function disableFutureDate(date: Date) {
+  const today = new Date()
+  today.setHours(23, 59, 59, 999)
+  return date.getTime() > today.getTime()
 }
 
 function selectView(key: string) {
@@ -168,8 +182,24 @@ onMounted(loadMarket)
             <p>{{ pageMeta[1] }}</p>
           </section>
           <section class="actions">
-            <el-button type="primary" :icon="Refresh" :loading="loading" @click="loadMarket">刷新行情</el-button>
-            <span>{{ overview?.updatedAt ? `更新于 ${overview.updatedAt}` : '等待加载' }}</span>
+            <el-date-picker
+              v-model="selectedDate"
+              type="date"
+              value-format="YYYY-MM-DD"
+              format="YYYY-MM-DD"
+              :prefix-icon="Calendar"
+              :clearable="false"
+              :disabled-date="disableFutureDate"
+              :disabled="loading"
+              @change="loadMarket"
+            />
+            <span>
+              {{
+                overview?.updatedAt
+                  ? `交易日 ${overview.tradeDate} · 更新于 ${overview.updatedAt}`
+                  : '等待加载'
+              }}
+            </span>
           </section>
         </header>
 
@@ -343,7 +373,7 @@ onMounted(loadMarket)
           </section>
         </template>
 
-        <el-empty v-else-if="!loading && !error" description="点击刷新行情加载数据" />
+        <el-empty v-else-if="!loading && !error" description="请选择日期加载行情" />
         <el-skeleton v-if="loading && !overview" :rows="8" animated />
       </main>
     </div>

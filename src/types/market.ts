@@ -54,5 +54,6 @@ export interface MarketOverview {
   mood: MarketMood
   analysis: string
   ladder: LadderSummary
+  tradeDate: string
   updatedAt: string
 }

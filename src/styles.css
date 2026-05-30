@@ -126,7 +126,18 @@ h1 {
   align-items: center;
   gap: 12px;
   color: #64748b;
-  white-space: nowrap;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  white-space: normal;
+}
+
+.actions .el-date-editor {
+  width: 164px;
+  flex: 0 0 164px;
+}
+
+.actions span {
+  text-align: right;
 }
 
 .notice {
