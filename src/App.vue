@@ -56,6 +56,12 @@ function selectView(key: string) {
   activeView.value = key as ViewName
 }
 
+function moodColor(label: string) {
+  if (label === '偏热') return '#dc2626'
+  if (label === '偏冷') return '#059669'
+  return '#d97706'
+}
+
 function pctClass(value: number) {
   if (value > 0) return 'up'
   if (value < 0) return 'down'
@@ -165,7 +171,12 @@ onMounted(loadMarket)
                 </template>
                 <div class="mood-head">
                   <strong>{{ overview.mood.label }}</strong>
-                  <el-progress :percentage="overview.mood.heat" :stroke-width="12" :show-text="false" />
+                  <el-progress
+                    :percentage="overview.mood.heat"
+                    :stroke-width="12"
+                    :show-text="false"
+                    :color="moodColor(overview.mood.label)"
+                  />
                 </div>
                 <p>{{ overview.mood.detail }}</p>
               </el-card>
