@@ -168,6 +168,39 @@ h1 {
   margin-bottom: 8px;
 }
 
+.sparkline {
+  display: block;
+  width: 100%;
+  height: 54px;
+  margin-top: 14px;
+  overflow: visible;
+}
+
+.sparkline-axis {
+  stroke: #e5e7eb;
+  stroke-dasharray: 4 4;
+  stroke-width: 1;
+}
+
+.sparkline-line {
+  fill: none;
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.sparkline-line.up {
+  stroke: #dc2626;
+}
+
+.sparkline-line.down {
+  stroke: #059669;
+}
+
+.sparkline-line.flat {
+  stroke: #64748b;
+}
+
 .analysis-grid,
 .content-grid {
   display: grid;

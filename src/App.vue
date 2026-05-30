@@ -98,6 +98,26 @@ function formatLimitTime(value: string) {
   return `${padded.slice(0, 2)}:${padded.slice(2, 4)}:${padded.slice(4, 6)}`
 }
 
+function sparklinePoints(item: QuoteItem) {
+  const prices = item.trends.map((point) => point.price).filter((price) => Number.isFinite(price) && price > 0)
+  if (prices.length < 2) return ''
+
+  const min = Math.min(...prices)
+  const max = Math.max(...prices)
+  const range = max - min || 1
+  const width = 180
+  const height = 52
+  const step = width / Math.max(prices.length - 1, 1)
+
+  return prices
+    .map((price, index) => {
+      const x = index * step
+      const y = height - ((price - min) / range) * height
+      return `${x.toFixed(1)},${y.toFixed(1)}`
+    })
+    .join(' ')
+}
+
 function tierRows(days: number): LadderRow[] {
   return promotedRows.value.filter((row) => row.todayDays === days)
 }
@@ -185,6 +205,14 @@ onMounted(loadMarket)
                 <p>{{ item.name }}</p>
                 <strong>{{ formatNumber(item.price) }}</strong>
                 <span :class="pctClass(item.pct)">{{ formatPct(item.pct) }} / {{ formatNumber(item.change) }}</span>
+                <svg class="sparkline" viewBox="0 0 180 52" preserveAspectRatio="none" aria-hidden="true">
+                  <line x1="0" y1="26" x2="180" y2="26" class="sparkline-axis" />
+                  <polyline
+                    v-if="sparklinePoints(item)"
+                    :points="sparklinePoints(item)"
+                    :class="['sparkline-line', pctClass(item.pct)]"
+                  />
+                </svg>
               </el-card>
             </div>
 

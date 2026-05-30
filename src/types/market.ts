@@ -7,6 +7,13 @@ export interface QuoteItem {
   amount: number
   turnover: number
   inflow: number
+  trends: TrendPoint[]
+}
+
+export interface TrendPoint {
+  time: string
+  price: number
+  average: number
 }
 
 export interface LadderRow {
