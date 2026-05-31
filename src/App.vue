@@ -76,12 +76,12 @@ const displayedConcepts = computed(() => {
   return [...(overview.value?.concepts ?? [])].sort(compare).slice(0, 12)
 })
 
-const promotedRows = computed(() => {
-  return (overview.value?.ladder.rows ?? []).filter((row) => row.promoted)
+const ladderRows = computed(() => {
+  return (overview.value?.ladder.rows ?? []).filter((row) => row.todayDays > 0)
 })
 
 const ladderTiers = computed(() => {
-  const days = new Set(promotedRows.value.map((row) => row.todayDays))
+  const days = new Set(ladderRows.value.map((row) => row.todayDays))
   return [...days].sort((a, b) => b - a)
 })
 
@@ -237,7 +237,28 @@ function sparklinePoints(item: QuoteItem) {
 }
 
 function tierRows(days: number): LadderRow[] {
-  return promotedRows.value.filter((row) => row.todayDays === days)
+  return ladderRows.value.filter((row) => row.todayDays === days)
+}
+
+function tierLabel(days: number) {
+  return days === 1 ? '首板' : `${days} 连板`
+}
+
+function ladderTagClass(row: LadderRow) {
+  return row.intradayBroken ? 'ladder-chip is-broken' : 'ladder-chip'
+}
+
+function ladderStatus(row: LadderRow) {
+  if (row.intradayBroken) return '盘中炸板'
+  if (row.promoted) return '晋级'
+  if (row.todayDays === 1) return '首板'
+  return '断板'
+}
+
+function ladderStatusType(row: LadderRow) {
+  if (row.intradayBroken) return 'info'
+  if (row.promoted || row.todayDays === 1) return 'danger'
+  return 'info'
 }
 
 function briefMove(item: GlobalMarketItem) {
@@ -644,12 +665,18 @@ onMounted(async () => {
                   <small>{{ displayDate(overview.ladder.yesterdayDate) }} -> {{ displayDate(overview.ladder.todayDate) }}</small>
                 </div>
               </template>
-              <el-empty v-if="!promotedRows.length" description="暂无晋级到今日涨停池的个股" />
+              <el-empty v-if="!ladderRows.length" description="暂无连板天梯数据" />
               <div v-else class="ladder">
                 <section v-for="days in ladderTiers" :key="days" class="tier">
-                  <div class="tier-label">{{ days }} 连板</div>
+                  <div class="tier-label">{{ tierLabel(days) }}</div>
                   <div class="chips">
-                    <el-tag v-for="stock in tierRows(days)" :key="stock.code" effect="plain" size="large">
+                    <el-tag
+                      v-for="stock in tierRows(days)"
+                      :key="stock.code"
+                      :class="ladderTagClass(stock)"
+                      effect="plain"
+                      size="large"
+                    >
                       {{ stock.name }} · {{ stock.industry }} · {{ formatPct(stock.pct) }}
                     </el-tag>
                   </div>
@@ -665,11 +692,13 @@ onMounted(async () => {
                 <el-table-column prop="name" label="股票" min-width="150" />
                 <el-table-column label="状态" width="100">
                   <template #default="{ row }">
-                    <el-tag :type="row.promoted ? 'danger' : 'info'">{{ row.promoted ? '晋级' : '断板' }}</el-tag>
+                    <el-tag :type="ladderStatusType(row)">{{ ladderStatus(row) }}</el-tag>
                   </template>
                 </el-table-column>
                 <el-table-column label="连板" width="96">
-                  <template #default="{ row }">{{ row.promoted ? `${row.todayDays} 板` : `昨 ${row.yesterdayDays} 板` }}</template>
+                  <template #default="{ row }">
+                    {{ row.todayDays > 0 ? tierLabel(row.todayDays) : `昨 ${row.yesterdayDays} 板` }}
+                  </template>
                 </el-table-column>
                 <el-table-column label="涨跌幅" width="110">
                   <template #default="{ row }"><span :class="pctClass(row.pct)">{{ formatPct(row.pct) }}</span></template>

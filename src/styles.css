@@ -289,10 +289,16 @@ h1 {
   gap: 8px;
 }
 
-.chips .el-tag {
+.chips .el-tag.ladder-chip {
   border-color: #dc2626;
   background: #fee2e2;
   color: #991b1b;
+}
+
+.chips .el-tag.ladder-chip.is-broken {
+  border-color: #cbd5e1;
+  background: #f1f5f9;
+  color: #64748b;
 }
 
 .up {
