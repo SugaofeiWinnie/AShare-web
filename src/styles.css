@@ -289,6 +289,12 @@ h1 {
   gap: 8px;
 }
 
+.chips .el-tag {
+  border-color: #dc2626;
+  background: #fee2e2;
+  color: #991b1b;
+}
+
 .up {
   color: #dc2626;
   font-weight: 700;
