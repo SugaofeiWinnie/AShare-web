@@ -244,19 +244,13 @@ function tierLabel(days: number) {
   return days === 1 ? '首板' : `${days} 连板`
 }
 
-function ladderTagClass(row: LadderRow) {
-  return row.intradayBroken ? 'ladder-chip is-broken' : 'ladder-chip'
-}
-
 function ladderStatus(row: LadderRow) {
-  if (row.intradayBroken) return '盘中炸板'
   if (row.promoted) return '晋级'
   if (row.todayDays === 1) return '首板'
   return '断板'
 }
 
 function ladderStatusType(row: LadderRow) {
-  if (row.intradayBroken) return 'info'
   if (row.promoted || row.todayDays === 1) return 'danger'
   return 'info'
 }
@@ -673,7 +667,7 @@ onMounted(async () => {
                     <el-tag
                       v-for="stock in tierRows(days)"
                       :key="stock.code"
-                      :class="ladderTagClass(stock)"
+                      class="ladder-chip"
                       effect="plain"
                       size="large"
                     >

@@ -35,7 +35,6 @@ export interface LadderRow {
   yesterdayDays: number
   pct: number
   firstLimit: string
-  intradayBroken: boolean
 }
 
 export interface LadderSummary {

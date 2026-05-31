@@ -295,12 +295,6 @@ h1 {
   color: #991b1b;
 }
 
-.chips .el-tag.ladder-chip.is-broken {
-  border-color: #cbd5e1;
-  background: #f1f5f9;
-  color: #64748b;
-}
-
 .up {
   color: #dc2626;
   font-weight: 700;
