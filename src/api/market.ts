@@ -3,7 +3,9 @@ import type {
   AiReviewResponse,
   FundFlowOverview,
   MarketOverview,
-  PreopenBrief
+  PreopenBrief,
+  StockReportGenerateRequest,
+  StockReportResponse
 } from '../types/market'
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL ?? ''
@@ -65,4 +67,35 @@ export async function submitAiReview(payload: AiReviewRequest): Promise<AiReview
   }
 
   return response.json() as Promise<AiReviewResponse>
+}
+
+export async function generateStockReport(payload: StockReportGenerateRequest): Promise<StockReportResponse> {
+  const response = await fetch(`${API_BASE}/api/reports/generate`, {
+    method: 'POST',
+    headers: {
+      Accept: 'application/json',
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(payload)
+  })
+
+  if (!response.ok) {
+    throw new Error(`个股报告生成失败：${response.status}`)
+  }
+
+  return response.json() as Promise<StockReportResponse>
+}
+
+export async function fetchLatestStockReport(code: string): Promise<StockReportResponse> {
+  const params = new URLSearchParams({ code })
+  const response = await fetch(`${API_BASE}/api/reports/latest?${params.toString()}`, {
+    headers: { Accept: 'application/json' },
+    cache: 'no-store'
+  })
+
+  if (!response.ok) {
+    throw new Error(`个股报告读取失败：${response.status}`)
+  }
+
+  return response.json() as Promise<StockReportResponse>
 }

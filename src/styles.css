@@ -309,6 +309,161 @@ h1 {
   color: #64748b;
 }
 
+.neutral {
+  color: #475569;
+}
+
+.warn {
+  color: #d97706;
+}
+
+.report-toolbar {
+  display: grid;
+  grid-template-columns: minmax(180px, 260px) auto auto auto;
+  gap: 12px;
+  align-items: center;
+}
+
+.stock-report {
+  display: grid;
+  gap: 18px;
+}
+
+.report-hero {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 24px;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #fff7f7 0%, #ffffff 62%);
+}
+
+.report-hero h2 {
+  margin: 4px 0;
+  font-size: 32px;
+}
+
+.report-hero p {
+  margin: 0;
+  color: #64748b;
+}
+
+.report-score {
+  min-width: 128px;
+  text-align: center;
+}
+
+.report-score strong {
+  display: block;
+  color: #dc2626;
+  font-size: 54px;
+  line-height: 1;
+}
+
+.report-score span {
+  color: #991b1b;
+  font-weight: 700;
+}
+
+.report-metrics {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.report-metrics .el-card span {
+  color: #64748b;
+  font-size: 13px;
+}
+
+.report-metrics .el-card strong {
+  display: block;
+  margin-top: 8px;
+  font-size: 22px;
+}
+
+.investor-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.investor-grid section {
+  padding: 14px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.investor-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  align-items: center;
+}
+
+.investor-grid h3 {
+  margin: 10px 0 8px;
+  font-size: 16px;
+}
+
+.investor-grid p {
+  margin: 0 0 8px;
+  color: #1e293b;
+  line-height: 1.6;
+}
+
+.investor-grid small,
+.disclaimer {
+  color: #64748b;
+  line-height: 1.6;
+}
+
+.scan-list {
+  display: grid;
+  gap: 14px;
+}
+
+.scan-list section > div:first-child {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.scan-list p {
+  margin: 8px 0 0;
+  color: #64748b;
+  line-height: 1.6;
+}
+
+.valuation-band {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.valuation-band span,
+.valuation-band strong {
+  padding: 12px;
+  border-radius: 8px;
+  text-align: center;
+  background: #f8fafc;
+}
+
+.valuation-band strong {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.catalyst-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
 .global-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -377,7 +532,9 @@ h1 {
   .analysis-grid,
   .content-grid,
   .metric-grid,
-  .global-grid {
+  .global-grid,
+  .report-metrics,
+  .investor-grid {
     grid-template-columns: 1fr;
   }
 
@@ -400,5 +557,14 @@ h1 {
 
   .tier {
     grid-template-columns: 1fr;
+  }
+
+  .report-toolbar,
+  .valuation-band {
+    grid-template-columns: 1fr;
+  }
+
+  .report-hero {
+    flex-direction: column;
   }
 }

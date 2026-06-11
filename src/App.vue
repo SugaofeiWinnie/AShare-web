@@ -4,14 +4,17 @@ import {
   Calendar,
   Coin,
   DataAnalysis,
+  Document,
   TrendCharts,
   Tickets,
   MagicStick
 } from '@element-plus/icons-vue'
 import {
   fetchFunds,
+  fetchLatestStockReport,
   fetchOverview,
   fetchPreopen,
+  generateStockReport,
   submitAiReview
 } from './api/market'
 import type {
@@ -21,10 +24,11 @@ import type {
   LadderRow,
   MarketOverview,
   PreopenBrief,
-  QuoteItem
+  QuoteItem,
+  StockReportResponse
 } from './types/market'
 
-type ViewName = 'overview' | 'preopen' | 'boards' | 'funds' | 'ladder' | 'ai'
+type ViewName = 'overview' | 'preopen' | 'boards' | 'funds' | 'ladder' | 'report' | 'ai'
 type ConceptOrder = 'top' | 'bottom'
 
 const activeView = ref<ViewName>('overview')
@@ -34,11 +38,13 @@ const overview = ref<MarketOverview | null>(null)
 const preopen = ref<PreopenBrief | null>(null)
 const funds = ref<FundFlowOverview | null>(null)
 const aiResult = ref<AiReviewResponse | null>(null)
+const stockReport = ref<StockReportResponse | null>(null)
 
 const overviewLoading = ref(false)
 const preopenLoading = ref(false)
 const fundsLoading = ref(false)
 const aiLoading = ref(false)
+const reportLoading = ref(false)
 const error = ref('')
 const industryLimit = ref(12)
 const conceptOrder = ref<ConceptOrder>('top')
@@ -51,6 +57,11 @@ const reviewForm = reactive({
   marketContext: ''
 })
 
+const reportForm = reactive({
+  code: '002837',
+  forceRefresh: false
+})
+
 const pageMeta = computed(() => {
   const map: Record<ViewName, [string, string]> = {
     overview: ['今日市场总览', '看指数、看板块、看国际市场，把今天的盘面一次看清。'],
@@ -58,6 +69,7 @@ const pageMeta = computed(() => {
     boards: ['热门板块排行', '按涨跌与资金流向查看今天最热的行业和概念。'],
     funds: ['资金流向', '观察北向资金、主力资金和龙虎榜里的真实偏好。'],
     ladder: ['连板天梯', '比较昨日涨停池和今日涨停池，跟踪晋级和断板。'],
+    report: ['个股研究报告', '输入股票代码，生成并保存一份结构化 AI 个股深度报告。'],
     ai: ['AI盘后复盘', '输入今天的观点和操作，让智能助手帮你复盘节奏和风险。']
   }
   return map[activeView.value]
@@ -162,6 +174,38 @@ async function submitReview() {
     error.value = err instanceof Error ? err.message : 'AI复盘请求失败'
   } finally {
     aiLoading.value = false
+  }
+}
+
+async function loadLatestReport() {
+  const code = reportForm.code.trim()
+  if (!code) return
+  reportLoading.value = true
+  error.value = ''
+  try {
+    stockReport.value = await fetchLatestStockReport(code)
+  } catch (err) {
+    error.value = err instanceof Error ? err.message : '个股报告读取失败'
+  } finally {
+    reportLoading.value = false
+  }
+}
+
+async function submitStockReport() {
+  const code = reportForm.code.trim()
+  if (!code) return
+  reportLoading.value = true
+  error.value = ''
+  try {
+    stockReport.value = await generateStockReport({
+      code,
+      forceRefresh: reportForm.forceRefresh
+    })
+    reportForm.forceRefresh = false
+  } catch (err) {
+    error.value = err instanceof Error ? err.message : '个股报告生成失败'
+  } finally {
+    reportLoading.value = false
   }
 }
 
@@ -301,6 +345,7 @@ watch(selectedDate, () => {
 watch(activeView, (view) => {
   if (view === 'preopen') loadPreopen()
   if (view === 'funds') loadFunds()
+  if (view === 'report' && !stockReport.value) loadLatestReport()
 })
 
 watch(overview, (current) => {
@@ -347,6 +392,10 @@ onMounted(async () => {
           <el-menu-item index="ladder">
             <el-icon><Tickets /></el-icon>
             <span>连板天梯</span>
+          </el-menu-item>
+          <el-menu-item index="report">
+            <el-icon><Document /></el-icon>
+            <span>个股研究报告</span>
           </el-menu-item>
           <el-menu-item index="ai">
             <el-icon><MagicStick /></el-icon>
@@ -703,6 +752,141 @@ onMounted(async () => {
                 </el-table-column>
               </el-table>
             </el-card>
+          </section>
+
+          <section v-show="activeView === 'report'" class="view">
+            <el-card shadow="never">
+              <template #header>
+                <div class="panel-head">
+                  <span>生成个股研究报告</span>
+                  <small>报告会保存到 MySQL，可重复查看最新版本</small>
+                </div>
+              </template>
+              <div class="report-toolbar">
+                <el-input
+                  v-model="reportForm.code"
+                  maxlength="6"
+                  placeholder="输入6位股票代码，例如 002837"
+                  clearable
+                  @keyup.enter="submitStockReport"
+                />
+                <el-checkbox v-model="reportForm.forceRefresh">强制刷新</el-checkbox>
+                <el-button :loading="reportLoading" @click="loadLatestReport">读取最新</el-button>
+                <el-button type="danger" :loading="reportLoading" @click="submitStockReport">生成报告</el-button>
+              </div>
+            </el-card>
+
+            <el-skeleton v-if="reportLoading && !stockReport" :rows="8" animated />
+            <div v-else-if="stockReport" class="stock-report">
+              <section class="report-hero">
+                <div>
+                  <p class="eyebrow">STOCK RESEARCH REPORT</p>
+                  <h2>{{ stockReport.stockName }}</h2>
+                  <p>{{ stockReport.stockCode }} · {{ stockReport.reportDate }} · {{ stockReport.aiGenerated ? `AI增强 / ${stockReport.model}` : '本地规则生成' }}</p>
+                </div>
+                <div class="report-score">
+                  <strong>{{ stockReport.score }}</strong>
+                  <span>{{ stockReport.verdict }}</span>
+                </div>
+              </section>
+
+              <el-card shadow="never">
+                <template #header>
+                  <span>核心摘要</span>
+                </template>
+                <p class="analysis-text">{{ stockReport.content.summary }}</p>
+              </el-card>
+
+              <div class="report-metrics">
+                <el-card v-for="metric in stockReport.content.metrics" :key="metric.label" shadow="never">
+                  <span>{{ metric.label }}</span>
+                  <strong :class="metric.tone">{{ metric.value }}</strong>
+                </el-card>
+              </div>
+
+              <div class="content-grid">
+                <el-card shadow="never">
+                  <template #header>
+                    <span>核心结论</span>
+                  </template>
+                  <ul class="compact-list">
+                    <li v-for="item in stockReport.content.coreConclusions" :key="item">{{ item }}</li>
+                  </ul>
+                </el-card>
+                <el-card shadow="never">
+                  <template #header>
+                    <span>风险清单</span>
+                  </template>
+                  <ul class="compact-list">
+                    <li v-for="item in stockReport.content.risks" :key="item">{{ item }}</li>
+                  </ul>
+                </el-card>
+              </div>
+
+              <el-card shadow="never">
+                <template #header>
+                  <span>投资流派观点</span>
+                </template>
+                <div class="investor-grid">
+                  <section v-for="view in stockReport.content.investorViews" :key="`${view.school}-${view.name}`">
+                    <div class="investor-head">
+                      <strong>{{ view.school }}</strong>
+                      <el-tag type="danger" effect="plain">{{ view.stance }}</el-tag>
+                    </div>
+                    <h3>{{ view.name }} · {{ view.score }}分</h3>
+                    <p>{{ view.conclusion }}</p>
+                    <small>{{ view.reason }}</small>
+                  </section>
+                </div>
+              </el-card>
+
+              <div class="content-grid">
+                <el-card shadow="never">
+                  <template #header>
+                    <span>全维扫描</span>
+                  </template>
+                  <div class="scan-list">
+                    <section v-for="item in stockReport.content.deepScan" :key="item.name">
+                      <div>
+                        <strong>{{ item.name }}</strong>
+                        <span>{{ item.status }}</span>
+                      </div>
+                      <el-progress :percentage="item.score" :stroke-width="8" color="#dc2626" />
+                      <p>{{ item.detail }}</p>
+                    </section>
+                  </div>
+                </el-card>
+                <el-card shadow="never">
+                  <template #header>
+                    <span>估值与买入区间</span>
+                  </template>
+                  <div class="valuation-band">
+                    <span>熊市 ¥{{ formatNumber(stockReport.content.valuation.bearPrice) }}</span>
+                    <strong>基准 ¥{{ formatNumber(stockReport.content.valuation.basePrice) }}</strong>
+                    <span>乐观 ¥{{ formatNumber(stockReport.content.valuation.bullPrice) }}</span>
+                  </div>
+                  <p class="analysis-text">{{ stockReport.content.valuation.method }}</p>
+                  <ul class="compact-list">
+                    <li v-for="zone in stockReport.content.buyZones" :key="zone.name">
+                      {{ zone.name }}：¥{{ formatNumber(zone.low) }} - ¥{{ formatNumber(zone.high) }}，{{ zone.note }}
+                    </li>
+                  </ul>
+                </el-card>
+              </div>
+
+              <el-card shadow="never">
+                <template #header>
+                  <span>催化事件</span>
+                </template>
+                <div class="catalyst-list">
+                  <el-tag v-for="item in stockReport.content.catalysts" :key="item" effect="plain" type="danger">
+                    {{ item }}
+                  </el-tag>
+                </div>
+                <p class="disclaimer">{{ stockReport.content.disclaimer }}</p>
+              </el-card>
+            </div>
+            <el-empty v-else description="输入股票代码后生成或读取报告" />
           </section>
 
           <section v-show="activeView === 'ai'" class="view">

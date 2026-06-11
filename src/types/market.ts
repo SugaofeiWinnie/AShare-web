@@ -145,3 +145,74 @@ export interface AiReviewResponse {
   reply: string
   generatedAt: string
 }
+
+export interface StockReportGenerateRequest {
+  code: string
+  forceRefresh: boolean
+}
+
+export interface StockReportResponse {
+  reportId: string
+  stockCode: string
+  stockName: string
+  reportDate: string
+  price: number
+  pct: number
+  verdict: string
+  score: number
+  aiGenerated: boolean
+  model: string
+  content: StockReportContent
+  createdAt: string
+  updatedAt: string
+}
+
+export interface StockReportContent {
+  summary: string
+  metrics: ReportMetric[]
+  coreConclusions: string[]
+  investorViews: InvestorView[]
+  deepScan: ScanDimension[]
+  valuation: ValuationModel
+  risks: string[]
+  catalysts: string[]
+  buyZones: BuyZone[]
+  disclaimer: string
+}
+
+export interface ReportMetric {
+  label: string
+  value: string
+  tone: 'up' | 'down' | 'warn' | 'neutral' | string
+}
+
+export interface InvestorView {
+  school: string
+  name: string
+  stance: string
+  score: number
+  conclusion: string
+  reason: string
+}
+
+export interface ScanDimension {
+  name: string
+  score: number
+  status: string
+  detail: string
+}
+
+export interface ValuationModel {
+  bearPrice: number
+  basePrice: number
+  bullPrice: number
+  method: string
+  assumptions: string[]
+}
+
+export interface BuyZone {
+  name: string
+  low: number
+  high: number
+  note: string
+}
